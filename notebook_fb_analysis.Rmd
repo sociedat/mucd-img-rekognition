@@ -1,0 +1,85 @@
+---
+title: "Análisis de imagenes de redes sociales de agencias de seguridad mexicanas"
+author: México Unido Contra la Delincuencia + SocialTIC + Sociedad Mexicana de Ciencia
+  de Datos
+date: "14/4/2021"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(knitr)
+library(rmarkdown)
+library(tidyverse)
+library(readr)
+library(plotly)
+```
+
+## Qué queremos lograr con este estudio?
+
+TBD
+
+## Qué se está analizando?
+
+A continuación el proceso paso a paso
+
+## Descargamos 1348 imagenes de la página de Dacebook de la Secretaría de Marina de México junto con sus metadatos
+
+La descarga fue manual siguiendo los URLs de la siguiente tabla:
+
+```{r fb-table, echo=F, warning=F, message=F}
+fb_export_semar <- read_csv('./fb-search-csv-export-sedena.csv') # dice SEDENA, pero es realmente SEMAR
+fb_export_semar <- fb_export_semar %>% select(-c(1,3,4,5,17,18,19,20,21,25,26,27,28,29,30,31,32,33)) %>% mutate(id = 1:n()) %>% select(id, everything())
+fb_export_semar %>% paged_table()
+```
+
+## Analizamos cada una con los algoritmos de clasificación de escena de Amazon Rekognition
+
+![](https://i.imgur.com/ahUCu3z.png)
+
+## Obtenemos de ese servicio una lista de posibles temáticas detectadas junto con el % de confianza
+
+```{r confidence-table, echo=F, warning=F, message=F}
+rekognition_result <- read_csv('./fb_scores.csv') %>% mutate(Name = as.factor(Name))
+rekognition_result %>% paged_table()
+```
+## Definimos un diccionario de palabras relacionadas a la milicia para eliminar el resto de las temáticas no militares detectadas
+
+## Diccionario:
+```{r military-dict, echo=F, warning=F, message=F}
+military_dict <- read_lines('dictionary.txt')
+military_dict
+```
+
+## Filtrado de temáticas con diccionario
+```{r filtered-with-dict, echo=F, warning=F, message=F}
+rekognition_filtered_w_dict <- rekognition_result %>% filter(Name %in% military_dict)
+rekognition_filtered_w_dict %>% paged_table()
+```
+
+
+## Definimos un umbral de confianza para deducir ocurrencia de temas militares
+```{r filtered-confidence-table, echo=F, warning=F, message=F}
+param <- 70
+rekognition_filtered_with_threshold <- rekognition_filtered_w_dict %>% filter(Confidence >= param) 
+rekognition_filtered_with_threshold %>% paged_table()
+```
+
+
+## Unimos estos datos de _ocurrencia_ de temáticas militares con metadatos de reacciones sociales
+```{r join-with-fb-metadata, echo=F, warning=F, message=F}
+all_fb_semar <- rekognition_filtered_with_threshold %>% inner_join(fb_export_semar, by = c('Source' = 'id'))
+all_fb_semar %>% paged_table()
+```
+
+## Contamos las ocurrencias de temáticas militares por fotografía
+```{r result-table, echo=F, warning=F, message=F}
+summarised_fb_rekognition <- all_fb_semar %>% group_by(Source) %>% summarise(military_terms = n(), total_likes = mean(Likes))
+summarised_fb_rekognition %>% paged_table()
+```
+## Ploteamos esta relación
+```{r plot, echo=F, warning=F, message=F}
+fig <- plot_ly(data = summarised_fb_rekognition, x = ~military_terms, y = ~total_likes)
+fig
+```
+
