@@ -68,18 +68,20 @@ rekognition_filtered_with_threshold %>% paged_table()
 
 ## Unimos estos datos de _ocurrencia_ de temáticas militares con metadatos de reacciones sociales
 ```{r join-with-fb-metadata, echo=F, warning=F, message=F}
-all_fb_semar <- rekognition_filtered_with_threshold %>% inner_join(fb_export_semar, by = c('Source' = 'id'))
+all_fb_semar <- rekognition_filtered_with_threshold %>% 
+  inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
+  select(-c('User Name','Type','URL','Link','Message'))
 all_fb_semar %>% paged_table()
 ```
 
 # Preguntas de investigación
 
-## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= 65% y el filtro de diccionario de etiquetas militares?
+## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= 70% y el filtro de diccionario de etiquetas militares?
 ```{r imgs-left-out, echo=F, warning=F, message=F}
 left_out <- length(unique(rekognition_filtered_with_threshold$Source)) / length(unique(rekognition_result$Source)) * 100
 paste0(round(left_out,2),' %')
 ```
-## Qué etiquetas estaban sobrerepresentadas en las imgs que quedaron fuera? Qué etiquetas estaban subrepresentadas?
+## Qué etiquetas estaban sobrerepresentadas en las imgs que quedaron fuera?
 
 Para este resultado, presentaremos las etiquetas detectadas que NO pertenecen al diccionario de palabras relacionadas a la milicia, y además eliminaremos aquellas categorías que solo estén representadas en 10 fotografias por considerarlas de poca densidad y por tanto de poca relevancia:
 ```{r categories-left-out, echo=F, warning=F, message=F}
@@ -118,6 +120,7 @@ Lo cual definitivamente no es correcto.
 ## Qué etiquetas están relacionadas con una percepción positiva de la SEMAR ante la sociedad y con qué frecuencia aparecen?
 
 Para esta pregunta definiremos las siguientes categorías:
+
 1. acercamiento con la sociedad civil
 2. acciones de rescate y manejo de desastres
 3. asistencia en campañas de salud
@@ -132,17 +135,66 @@ categories_labels <- read_csv('non_military_labels.txt')
 categories_labels %>% arrange(categoria) %>% paged_table()
 ```
 
-Una vez con estas categorías, podemos asociar cada una con las imgs que si tuvieron etiquetas relacionadas a lo militar:
+Una vez obtenidas estas categorías, podemos asociar cada una con las imgs descargadas y analizar distribuciones y concentraciones:
 
-  
+```{r categories-and-photos, echo=F, warning=F, message=F}
+photos_categories_social <- rekognition_result %>% 
+  rename(etiqueta = Name, confianza_etiqueta = Confidence, num_foto = Source) %>%
+  inner_join(categories_labels) %>%
+  filter(confianza_etiqueta >= param) %>%
+  inner_join(fb_export_semar, by = c('num_foto' = 'id')) %>%
+  select(-c('User Name','Type','URL','Link'))
+summary_photos_social <- photos_categories_social %>% 
+  group_by(categoria) %>% 
+  summarise(confianza_promedio = mean(confianza_etiqueta, na.rm=T), num_fotos = n(), promedio_likes = mean(Likes, na.rm=T), 
+            promedio_comments = mean(Comments, na.rm=T), 
+            promedio_shares = mean(Shares, na.rm=T), 
+            promedio_love = mean(Love, na.rm=T), 
+            promedio_wow = mean(Wow, na.rm=T), 
+            promedio_haha = mean(Haha, na.rm=T), 
+            promedio_sad = mean(Sad, na.rm=T), 
+            promedio_angry = mean(Angry, na.rm=T), 
+            promedio_care = mean(Care, na.rm=T))
+summary_photos_social %>% paged_table()
+```
+
+Con esto podemos observar lo siguiente **de este universo de fotografías**:
+
+1. Hay considerablemente más fotos de **proyección positiva** que del resto de las categorías. La suma de las fotos de las otras categorías apenas suman 540, mientras que las de proyección positiva son 515, aproximadamente un **48.8%** del total.
+2. Las fotografías de **proyección patriótica** concentra el **31.5%** del total de likes, y es 1.33 veces más que la 2a más concentrada de "acercamiento con civiles"
+3. La reacción negativa _Angry_ tiene muy poca representación. Ninguna de las categorías llega a tener 1 reacción en promedio.
+4. La reacción _Sad_ podemos intuir que llama a la simpatía y está concentrada en las categorías "Acercamiento con civiles", "Proyección patriótia" y "Proyección positiva".
+5. Las fotografías en la categoría de **inclusión y género** representan apenas **0.6%** de este universo, y concentran el menor número de reacciones de todos los tipos.
+
+Cuando comparamos esta distribución con las fotografías de claro corte militar, podemos ver lo siguiente:
+
+```{r categories-and-photos-military, echo=F, warning=F, message=F}
+all_fb_semar_summarised <- all_fb_semar %>% 
+  group_by(Name) %>%
+  summarise(num_fotos = n(),
+            confianza_promedio = mean(Confidence, na.rm=T),
+            promedio_likes = mean(Likes, na.rm=T), 
+            promedio_comments = mean(Comments, na.rm=T), 
+            promedio_shares = mean(Shares, na.rm=T), 
+            promedio_love = mean(Love, na.rm=T), 
+            promedio_wow = mean(Wow, na.rm=T), 
+            promedio_haha = mean(Haha, na.rm=T), 
+            promedio_sad = mean(Sad, na.rm=T), 
+            promedio_angry = mean(Angry, na.rm=T), 
+            promedio_care = mean(Care, na.rm=T)
+            ) %>%
+  arrange(desc(promedio_likes))
+all_fb_semar_summarised %>% paged_table()
+```
+
+1. Aún cuando solamente hay 1 foto con una tanqueta, es la foto con mayor número de _likes_.
+2. Aunque solamente hay 430 Fotos de equipamiento y armamento, éstas concentra alrededor de **23,000** reacciones de usuarios.
+3. 
 
 
+## Cómo se relacionan la cantidad de reacciones en eventos específicos?
 
-Posteriormente agrupamos este diccionario en términos similares para formar _categorías_:
-
-
-- tipos de publicación VS tipos de reacción
-- línea de tiempo de actos específicos - fechas?
+TBD
 
 ## Líneas de investigación que requieren de mayor elaboración
 1. **Capacidad de armamento:** esta línea requiere de un modelo de computer vision específicamente entrenado para identificar armamento y ejecutarlo en el subconjunto de imagenes cuya etiqueta si tiene relación con la milicia.
