@@ -47,7 +47,7 @@ rekognition_result %>% paged_table()
 
 ## Diccionario:
 ```{r military-dict, echo=F, warning=F, message=F}
-military_dict <- read_lines('dictionary.txt')
+military_dict <- read_lines('military_labels.txt')
 military_dict
 ```
 
@@ -58,7 +58,7 @@ rekognition_filtered_w_dict %>% paged_table()
 ```
 
 
-## Definimos un umbral de confianza para deducir ocurrencia de temas militares
+## Definimos un umbral de confianza para deducir ocurrencia de temas militares del 70%
 ```{r filtered-confidence-table, echo=F, warning=F, message=F}
 param <- 70
 rekognition_filtered_with_threshold <- rekognition_filtered_w_dict %>% filter(Confidence >= param) 
@@ -72,14 +72,78 @@ all_fb_semar <- rekognition_filtered_with_threshold %>% inner_join(fb_export_sem
 all_fb_semar %>% paged_table()
 ```
 
-## Contamos las ocurrencias de temáticas militares por fotografía
-```{r result-table, echo=F, warning=F, message=F}
-summarised_fb_rekognition <- all_fb_semar %>% group_by(Source) %>% summarise(military_terms = n(), total_likes = mean(Likes))
-summarised_fb_rekognition %>% paged_table()
+# Preguntas de investigación
+
+## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= 65% y el filtro de diccionario de etiquetas militares?
+```{r imgs-left-out, echo=F, warning=F, message=F}
+left_out <- length(unique(rekognition_filtered_with_threshold$Source)) / length(unique(rekognition_result$Source)) * 100
+paste0(round(left_out,2),' %')
 ```
-## Ploteamos esta relación
-```{r plot, echo=F, warning=F, message=F}
-fig <- plot_ly(data = summarised_fb_rekognition, x = ~military_terms, y = ~total_likes)
-fig
+## Qué etiquetas estaban sobrerepresentadas en las imgs que quedaron fuera? Qué etiquetas estaban subrepresentadas?
+
+Para este resultado, presentaremos las etiquetas detectadas que NO pertenecen al diccionario de palabras relacionadas a la milicia, y además eliminaremos aquellas categorías que solo estén representadas en 10 fotografias por considerarlas de poca densidad y por tanto de poca relevancia:
+```{r categories-left-out, echo=F, warning=F, message=F}
+rekognition_leftout_w_dict <- rekognition_result %>% filter(!(Name %in% military_dict))
+rekognition_leftout_sum <- rekognition_leftout_w_dict %>% 
+  group_by(Name) %>% 
+  summarise(promedio_confianza = mean(Confidence, na.rm=T), conteo = n(), ponderado = (promedio_confianza * conteo)) %>% 
+  filter(conteo >= 10) %>% 
+  arrange(desc(ponderado))
+rekognition_leftout_sum %>% paged_table()
 ```
 
+Adicionalmente, vamos a eliminar las siguientes etiquetas por ser demasisado generales y poco relacionadas con el objetivo de investigación:
+
+```{r general-dict, echo=F, warning=F, message=F}
+general_dict <- read_lines('general_labels.txt')
+general_dict
+```
+
+Excluyendo estas etiquetas, nos queda la siguiente representación:
+
+```{r filtered-left-out, echo=F, warning=F, message=F}
+rekognition_leftout_sum <- rekognition_leftout_sum %>% filter(!(Name %in% general_dict))
+rekognition_leftout_sum %>% paged_table()
+```
+
+
+### Dato curioso
+
+Hemos eliminado la etiqueta `Paintball` porque las imagenes que tienen asignada esta etiqueta son de este tipo:
+
+![](https://i.imgur.com/rermiBQ.png)
+
+Lo cual definitivamente no es correcto.
+
+## Qué etiquetas están relacionadas con una percepción positiva de la SEMAR ante la sociedad y con qué frecuencia aparecen?
+
+Para esta pregunta definiremos las siguientes categorías:
+1. acercamiento con la sociedad civil
+2. acciones de rescate y manejo de desastres
+3. asistencia en campañas de salud
+4. Proyección de imagen positiva
+5. Proyección de imagen patriótica
+6. Inclusión y género
+
+Luego tomaremos armaremos 3 diccionarios con las etiquetas que creemos que están relacionadas con cada una, **sin repetir etiquetas en diferentes categorías**
+
+```{r categories, echo=F, warning=F, message=F}
+categories_labels <- read_csv('non_military_labels.txt')
+categories_labels %>% arrange(categoria) %>% paged_table()
+```
+
+Una vez con estas categorías, podemos asociar cada una con las imgs que si tuvieron etiquetas relacionadas a lo militar:
+
+  
+
+
+
+Posteriormente agrupamos este diccionario en términos similares para formar _categorías_:
+
+
+- tipos de publicación VS tipos de reacción
+- línea de tiempo de actos específicos - fechas?
+
+## Líneas de investigación que requieren de mayor elaboración
+1. **Capacidad de armamento:** esta línea requiere de un modelo de computer vision específicamente entrenado para identificar armamento y ejecutarlo en el subconjunto de imagenes cuya etiqueta si tiene relación con la milicia.
+2. **Análisis de sentimiento de comentarios hechos a fotografías:** de momento no tenemos disponibles dichos comentarios.

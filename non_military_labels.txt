@@ -1,0 +1,42 @@
+etiqueta,categoria
+Advertisement,Proyección positiva
+Poster,Proyección positiva
+Crowd,Acercamiento con civiles
+Symbol,Proyección patriótica
+Brochure,Proyección positiva
+Flyer,Proyección positiva
+Leisure Activities,Acercamiento con civiles
+Sport, Acercamiento con civiles
+Sports, Acercamiento con civiles
+Flag,Proyección patriótica
+Pet,Proyección positiva
+Canine,Proyección positiva
+Clinic,Asistencia en salud
+Dog,Proyección positiva
+City,Acercamiento con civiles
+Town,Acercamiento con civiles
+Tree,Proyección positiva
+Team,Proyección positiva
+Metropolis,Acercamiento con civiles
+Hospital,Asistencia en salud
+Vegetation,Acercamiento con civiles
+Fireman,Acercamiento con civiles
+Police,Proyección positiva
+Doctor,Asistencia en salud
+Food,Asistencia en desastres
+Female,Inclusión y género
+Flooring,Acercamiento con civiles
+German Shepherd,Proyección positiva
+Team Sport,Acercamiento con civiles
+Lab,Proyección positiva
+Alphabet,Acercamiento con civiles
+Lab Coat,Asistencia en salud
+Drawing,Acercamiento con civiles
+Toy,Acercamiento con civiles
+Costume,Acercamiento con civiles
+First Aid,Asistencia en salud
+Meal,Asistencia en desastres
+Girl,Inclusión y género
+Baseball Cap,Acercamiento con civiles
+Festival,Acercamiento con civiles
+Rural,Asistencia en desastres
