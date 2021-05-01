@@ -15,17 +15,22 @@ library(readr)
 library(plotly)
 ```
 
-## Qué queremos lograr con este estudio?
+# Qué queremos lograr con este estudio?
 
 TBD
 
-## Qué se está analizando?
+# Preparación de datos
 
 A continuación el proceso paso a paso
 
-## Descargamos 1348 imagenes de la página de Dacebook de la Secretaría de Marina de México junto con sus metadatos
+## Descargamos 1348 imagenes de la página de Facebook de la Secretaría de Marina de México junto con sus metadatos de la red social.
 
-La descarga fue manual siguiendo los URLs de la siguiente tabla:
+La descarga fue manual siguiendo los URLs de la siguiente tabla, donde se encuentran los metadatos como:
+
+1. número de likes
+2. número de shares
+3. número de reacciones adicionales
+4. comentario adjunto al post
 
 ```{r fb-table, echo=F, warning=F, message=F}
 fb_export_semar <- read_csv('./fb-search-csv-export-sedena.csv') # dice SEDENA, pero es realmente SEMAR
@@ -37,18 +42,38 @@ fb_export_semar %>% paged_table()
 
 ![](https://i.imgur.com/ahUCu3z.png)
 
-## Obtenemos de ese servicio una lista de posibles temáticas detectadas junto con el % de confianza
+## Obtenemos de ese servicio una lista de etiquetas detectadas por el servicio de Rekognition junto con el % de confianza
 
 ```{r confidence-table, echo=F, warning=F, message=F}
 rekognition_result <- read_csv('./fb_scores.csv') %>% mutate(Name = as.factor(Name))
 rekognition_result %>% paged_table()
 ```
-## Definimos un diccionario de palabras relacionadas a la milicia para eliminar el resto de las temáticas no militares detectadas
+## Particionamos la lista de etiquetas en 4 áreas de interés:
 
-## Diccionario:
+1. **Etiquetas del ámbito militar:** 'destroyer','boat','soldier','frigate', etc.
+2. **Etiquetas que describen armamento antipersonal:** 'weapon', 'firearm', 'swat team', etc.
+3. **Etiauetas del ámbito social y de asistencia:** 'food','first aid','rural', etc.
+4. **Etiquetas generales:** 'sunglasses','bird','building', etc.
+
+> **IMPORTANTE:** Una imagen puede tener `N` etiquetas, por lo que una misma img puede estar repetida en más de 1 grupo.
+
+
+### Diccionario de etiquetas militares:
 ```{r military-dict, echo=F, warning=F, message=F}
 military_dict <- read_lines('military_labels.txt')
 military_dict
+```
+
+### Diccionario de etiquetas del ámbito social
+```{r social-dict, echo=F, warning=F, message=F}
+social_dict <- read_csv('non_military_labels.txt')
+social_dict$etiqueta
+```
+
+### Diccionario de etiquetas generales
+```{r general-dict, echo=F, warning=F, message=F}
+general_labels <- rekognition_result %>% filter(!(Name %in% military_dict) & !(Name %in% social_dict$etiqueta))
+unique(general_labels$Name)
 ```
 
 ## Filtrado de temáticas con diccionario
@@ -197,5 +222,5 @@ all_fb_semar_summarised %>% paged_table()
 TBD
 
 ## Líneas de investigación que requieren de mayor elaboración
-1. **Capacidad de armamento:** esta línea requiere de un modelo de computer vision específicamente entrenado para identificar armamento y ejecutarlo en el subconjunto de imagenes cuya etiqueta si tiene relación con la milicia.
+1. **Capacidad de armamento:** Filtrar las imgs que son exclusivamente de uso de armamento antipersonal.
 2. **Análisis de sentimiento de comentarios hechos a fotografías:** de momento no tenemos disponibles dichos comentarios.

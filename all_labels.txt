@@ -272,6 +272,7 @@ Flying
 Business Card
 Graphics
 Police Dog
+Word
 Hangar
 Propeller
 School

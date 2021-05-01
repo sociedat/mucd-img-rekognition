@@ -22,12 +22,18 @@ Hospital,Asistencia en salud
 Vegetation,Acercamiento con civiles
 Fireman,Acercamiento con civiles
 Police,Proyección positiva
+Soccer,Proyección positiva
+Red Cross,Asistencia en salud
+Parade,Proyección patriótica
+Eruption,Asistencia en desastres
 Doctor,Asistencia en salud
 Food,Asistencia en desastres
 Female,Inclusión y género
 Flooring,Acercamiento con civiles
+Musical Instrument,Proyección positiva
 German Shepherd,Proyección positiva
 Team Sport,Acercamiento con civiles
+CT Scan,Asistencia en salud
 Lab,Proyección positiva
 Alphabet,Acercamiento con civiles
 Lab Coat,Asistencia en salud
@@ -37,6 +43,7 @@ Costume,Acercamiento con civiles
 First Aid,Asistencia en salud
 Meal,Asistencia en desastres
 Girl,Inclusión y género
+Woman, Inclusión y género
 Baseball Cap,Acercamiento con civiles
 Festival,Acercamiento con civiles
 Rural,Asistencia en desastres
