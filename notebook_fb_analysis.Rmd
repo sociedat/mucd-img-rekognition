@@ -42,12 +42,16 @@ fb_export_semar %>% paged_table()
 
 ![](https://i.imgur.com/ahUCu3z.png)
 
-## Obtenemos de ese servicio una lista de etiquetas detectadas por el servicio de Rekognition junto con el % de confianza
+## Obtenemos de ese servicio una lista de etiquetas detectadas en las imagenes
+
+**IMPORTANTE:** vamos a aplicar un filtro al nivel de confianza de la detección de las etiquetas de `>= 65%` para asegurarnos de que lo que ha detectado Rekognition, realmente esté ahí, y de esta forma, eliminar ruido aportado por etiquetas con poca certidumbre de detección.
 
 ```{r confidence-table, echo=F, warning=F, message=F}
-rekognition_result <- read_csv('./fb_scores.csv') %>% mutate(Name = as.factor(Name))
+threshold <- 65
+rekognition_result <- read_csv('./fb_scores.csv') %>% mutate(Name = as.factor(Name)) %>% filter(Confidence >= threshold)
 rekognition_result %>% paged_table()
 ```
+
 ## Particionamos la lista de etiquetas en 4 áreas de interés:
 
 1. **Etiquetas del ámbito militar:** 'destroyer','boat','soldier','frigate', etc.
@@ -55,92 +59,101 @@ rekognition_result %>% paged_table()
 3. **Etiauetas del ámbito social y de asistencia:** 'food','first aid','rural', etc.
 4. **Etiquetas generales:** 'sunglasses','bird','building', etc.
 
-> **IMPORTANTE:** Una imagen puede tener `N` etiquetas, por lo que una misma img puede estar repetida en más de 1 grupo.
+**IMPORTANTE:** Una imagen puede tener `N` etiquetas, por lo que una misma img puede estar repetida en más de 1 grupo.
 
 
-### Diccionario de etiquetas militares:
+### Diccionario de etiquetas del ámbito militar:
 ```{r military-dict, echo=F, warning=F, message=F}
 military_dict <- read_lines('military_labels.txt')
 military_dict
 ```
 
+### Diccionario de etiquetas específicas de armamento antipersonal:
+```{r military-dict, echo=F, warning=F, message=F}
+weaponry_dict <- read_lines('weaponry_labels.txt')
+weaponry_dict
+```
+
+
 ### Diccionario de etiquetas del ámbito social
 ```{r social-dict, echo=F, warning=F, message=F}
-social_dict <- read_csv('non_military_labels.txt')
+social_dict <- read_csv('social_labels.txt')
 social_dict$etiqueta
 ```
 
 ### Diccionario de etiquetas generales
+
+Estas etiquetas resultan bastante generales como para ayudarnos a definir ya sea una categoría, o 
 ```{r general-dict, echo=F, warning=F, message=F}
 general_labels <- rekognition_result %>% filter(!(Name %in% military_dict) & !(Name %in% social_dict$etiqueta))
 unique(general_labels$Name)
 ```
 
-## Filtrado de temáticas con diccionario
-```{r filtered-with-dict, echo=F, warning=F, message=F}
-rekognition_filtered_w_dict <- rekognition_result %>% filter(Name %in% military_dict)
-rekognition_filtered_w_dict %>% paged_table()
-```
+# Procesamiento de datos antes del análisis
 
+Para cada grupo de etiquetas vamos a seguir estos pasos:
 
-## Definimos un umbral de confianza para deducir ocurrencia de temas militares del 70%
-```{r filtered-confidence-table, echo=F, warning=F, message=F}
-param <- 70
-rekognition_filtered_with_threshold <- rekognition_filtered_w_dict %>% filter(Confidence >= param) 
-rekognition_filtered_with_threshold %>% paged_table()
-```
+1. Filtrar las etiquetas con el diccionario de cada grupo.
+2. Hacer `join` con la tabla de metadata de DB extraída de FB
+3. Examinar y concluir de acuerdo a las etiquetas finalmente seleccionadas
 
-
-## Unimos estos datos de _ocurrencia_ de temáticas militares con metadatos de reacciones sociales
-```{r join-with-fb-metadata, echo=F, warning=F, message=F}
-all_fb_semar <- rekognition_filtered_with_threshold %>% 
+## Tabla con etiquetas del ámbito militar
+```{r filtered-with-military-dict, echo=F, warning=F, message=F}
+rekognition_filtered_w_dict <- rekognition_result %>% 
+  filter(Name %in% military_dict) %>%
+  filter(Confidence >= param) %>%
   inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
   select(-c('User Name','Type','URL','Link','Message'))
-all_fb_semar %>% paged_table()
+rekognition_filtered_w_dict %>% paged_table()
 ```
-
-# Preguntas de investigación
-
-## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= 70% y el filtro de diccionario de etiquetas militares?
-```{r imgs-left-out, echo=F, warning=F, message=F}
-left_out <- length(unique(rekognition_filtered_with_threshold$Source)) / length(unique(rekognition_result$Source)) * 100
-paste0(round(left_out,2),' %')
+## Tabla con etiquetas relacionadas a capacidad armamentista
+```{r filtered-with-weaponry-dict, echo=F, warning=F, message=F}
+rekognition_filtered_w_weaponry_dict <- rekognition_result %>% 
+  filter(Name %in% weaponry_dict) %>%
+  filter(Confidence >= param) %>%
+  inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
+  select(-c('User Name','Type','URL','Link','Message'))
+rekognition_filtered_w_weaponry_dict %>% paged_table()
 ```
-## Qué etiquetas estaban sobrerepresentadas en las imgs que quedaron fuera?
-
-Para este resultado, presentaremos las etiquetas detectadas que NO pertenecen al diccionario de palabras relacionadas a la milicia, y además eliminaremos aquellas categorías que solo estén representadas en 10 fotografias por considerarlas de poca densidad y por tanto de poca relevancia:
-```{r categories-left-out, echo=F, warning=F, message=F}
-rekognition_leftout_w_dict <- rekognition_result %>% filter(!(Name %in% military_dict))
-rekognition_leftout_sum <- rekognition_leftout_w_dict %>% 
-  group_by(Name) %>% 
-  summarise(promedio_confianza = mean(Confidence, na.rm=T), conteo = n(), ponderado = (promedio_confianza * conteo)) %>% 
-  filter(conteo >= 10) %>% 
-  arrange(desc(ponderado))
-rekognition_leftout_sum %>% paged_table()
-```
-
-Adicionalmente, vamos a eliminar las siguientes etiquetas por ser demasisado generales y poco relacionadas con el objetivo de investigación:
-
-```{r general-dict, echo=F, warning=F, message=F}
-general_dict <- read_lines('general_labels.txt')
-general_dict
-```
-
-Excluyendo estas etiquetas, nos queda la siguiente representación:
-
-```{r filtered-left-out, echo=F, warning=F, message=F}
-rekognition_leftout_sum <- rekognition_leftout_sum %>% filter(!(Name %in% general_dict))
-rekognition_leftout_sum %>% paged_table()
-```
-
 
 ### Dato curioso
 
-Hemos eliminado la etiqueta `Paintball` porque las imagenes que tienen asignada esta etiqueta son de este tipo:
+Hemos agregado la etiqueta `Paintball` a la lista concerniente a la capacidad armamentista porque las imagenes que tienen asignada esta etiqueta son de este tipo:
 
 ![](https://i.imgur.com/rermiBQ.png)
 
-Lo cual definitivamente no es correcto.
+Lo cual definitivamente no es un traje de "gotcha" o "paintball", sino equipamiento militar.
+
+
+## Tabla con etiquetas relacionadas a contacto con la sociedad
+
+```{r filtered-with-social-dict, echo=F, warning=F, message=F}
+rekognition_filtered_w_social_dict <- rekognition_result %>% 
+  filter(Name %in% social_dict$etiqueta) %>%
+  filter(Confidence >= param) %>%
+  inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
+  select(-c('User Name','Type','URL','Link','Message'))
+rekognition_filtered_w_social_dict %>% paged_table()
+```
+
+# Análisis
+
+## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= `{r param}` %, el filtro de diccionario de etiquetas militares, y el filtro de etiquetas de contacto con la sociedad?
+```{r imgs-left-out, echo=F, warning=F, message=F}
+left_out <- length(unique(general_labels$Source)) / length(unique(rekognition_result$Source)) * 100
+paste0(round(left_out,2),' %')
+```
+Tomemos en cuenta que para esta proporción ya fueron eliminadas las etiquetas con poca confianza.
+
+## Qué etiquetas están sobrerepresentadas y subrepresentadas en las imgs que quedaron fuera?
+
+```{r categories-left-out, echo=F, warning=F, message=F}
+rekognition_leftout_sum <- general_labels %>% 
+  group_by(Name) %>% 
+  summarise(promedio_confianza = mean(Confidence, na.rm=T), conteo = n(), ponderado = (promedio_confianza * conteo)) %>% 
+  arrange(desc(ponderado))
+rekognition_leftout_sum %>% paged_table()
+```
 
 ## Qué etiquetas están relacionadas con una percepción positiva de la SEMAR ante la sociedad y con qué frecuencia aparecen?
 
@@ -153,11 +166,10 @@ Para esta pregunta definiremos las siguientes categorías:
 5. Proyección de imagen patriótica
 6. Inclusión y género
 
-Luego tomaremos armaremos 3 diccionarios con las etiquetas que creemos que están relacionadas con cada una, **sin repetir etiquetas en diferentes categorías**
+Luego tomaremos armaremos 3 diccionarios con las etiquetas de índole social que creemos que están relacionadas con cada una, **sin repetir etiquetas en diferentes categorías**
 
 ```{r categories, echo=F, warning=F, message=F}
-categories_labels <- read_csv('non_military_labels.txt')
-categories_labels %>% arrange(categoria) %>% paged_table()
+social_dict %>% paged_table()
 ```
 
 Una vez obtenidas estas categorías, podemos asociar cada una con las imgs descargadas y analizar distribuciones y concentraciones:
@@ -165,7 +177,7 @@ Una vez obtenidas estas categorías, podemos asociar cada una con las imgs desca
 ```{r categories-and-photos, echo=F, warning=F, message=F}
 photos_categories_social <- rekognition_result %>% 
   rename(etiqueta = Name, confianza_etiqueta = Confidence, num_foto = Source) %>%
-  inner_join(categories_labels) %>%
+  inner_join(social_dict) %>%
   filter(confianza_etiqueta >= param) %>%
   inner_join(fb_export_semar, by = c('num_foto' = 'id')) %>%
   select(-c('User Name','Type','URL','Link'))
@@ -185,16 +197,17 @@ summary_photos_social %>% paged_table()
 
 Con esto podemos observar lo siguiente **de este universo de fotografías**:
 
-1. Hay considerablemente más fotos de **proyección positiva** que del resto de las categorías. La suma de las fotos de las otras categorías apenas suman 540, mientras que las de proyección positiva son 515, aproximadamente un **48.8%** del total.
-2. Las fotografías de **proyección patriótica** concentra el **31.5%** del total de likes, y es 1.33 veces más que la 2a más concentrada de "acercamiento con civiles"
-3. La reacción negativa _Angry_ tiene muy poca representación. Ninguna de las categorías llega a tener 1 reacción en promedio.
+1. Hay considerablemente más fotos de **proyección positiva** que del resto de las categorías. Esto nos habla de que la página de FB es claramente un aparato de PR.
+2. Las fotografías de **proyección patriótica** concentra el **34%** del total de likes con tan solo el **11%** de las fotos.
+3. La reacción negativa _Angry_ tiene muy poca representación. Ninguna de las categorías llega a tener 1 reacción en promedio. La SEMAR no recibe casi malas reacciones.
 4. La reacción _Sad_ podemos intuir que llama a la simpatía y está concentrada en las categorías "Acercamiento con civiles", "Proyección patriótia" y "Proyección positiva".
-5. Las fotografías en la categoría de **inclusión y género** representan apenas **0.6%** de este universo, y concentran el menor número de reacciones de todos los tipos.
+5. Las fotografías en la categoría de **inclusión y género** representan apenas **0.8%** de este universo, y tienen el menor número de reacciones de la mayoría de los tipos salvo "promedio_love" y"promedio_care".
+  - *Pregunta: podemos asociar estas reacciones con una audiencia que se identifica como mujer?*
 
 Cuando comparamos esta distribución con las fotografías de claro corte militar, podemos ver lo siguiente:
 
 ```{r categories-and-photos-military, echo=F, warning=F, message=F}
-all_fb_semar_summarised <- all_fb_semar %>% 
+all_fb_semar_summarised <- rekognition_filtered_w_dict %>% 
   group_by(Name) %>%
   summarise(num_fotos = n(),
             confianza_promedio = mean(Confidence, na.rm=T),
@@ -214,7 +227,6 @@ all_fb_semar_summarised %>% paged_table()
 
 1. Aún cuando solamente hay 1 foto con una tanqueta, es la foto con mayor número de _likes_.
 2. Aunque solamente hay 430 Fotos de equipamiento y armamento, éstas concentra alrededor de **23,000** reacciones de usuarios.
-3. 
 
 
 ## Cómo se relacionan la cantidad de reacciones en eventos específicos?

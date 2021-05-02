@@ -6,13 +6,19 @@ Symbol,Proyección patriótica
 Brochure,Proyección positiva
 Flyer,Proyección positiva
 Leisure Activities,Acercamiento con civiles
+Medical Imaging X-Ray Film, Asistencia en salud
 Sport, Acercamiento con civiles
 Sports, Acercamiento con civiles
 Flag,Proyección patriótica
+X-Ray,Asistencia en salud
 Pet,Proyección positiva
 Canine,Proyección positiva
 Clinic,Asistencia en salud
+Surgery,Asistencia en salud
 Dog,Proyección positiva
+Injury,Asistencia en salud
+Nurse,Asistencia en salud
+Senior Citizen,Proyección positiva
 City,Acercamiento con civiles
 Town,Acercamiento con civiles
 Tree,Proyección positiva
@@ -26,6 +32,7 @@ Soccer,Proyección positiva
 Red Cross,Asistencia en salud
 Parade,Proyección patriótica
 Eruption,Asistencia en desastres
+Ambulance,Asistencia en salud
 Doctor,Asistencia en salud
 Food,Asistencia en desastres
 Female,Inclusión y género
