@@ -46,20 +46,23 @@ fb_export_semar %>% paged_table()
 
 **IMPORTANTE:** vamos a aplicar un filtro al nivel de confianza de la detección de las etiquetas de `>= 65%` para asegurarnos de que lo que ha detectado Rekognition, realmente esté ahí, y de esta forma, eliminar ruido aportado por etiquetas con poca certidumbre de detección.
 
+Es importante mencionar que no estamos eliminando fotografías, sino **etiquetas** cuya confianza es baja, de modo que una fotografía donde se identifique `Soldier` con `80%` de confianza y `Boat` con `60%` de confianza, este filtro solo eliminará la detección de `Boat` y dejará la de `Soldier`.
+
 ```{r confidence-table, echo=F, warning=F, message=F}
 threshold <- 65
 rekognition_result <- read_csv('./fb_scores.csv') %>% mutate(Name = as.factor(Name)) %>% filter(Confidence >= threshold)
 rekognition_result %>% paged_table()
 ```
 
-## Particionamos la lista de etiquetas en 4 áreas de interés:
+## Particionamos la lista de etiquetas en 3 áreas de interés:
+
+Posterior a tener todas las etiquetas identificadas en el set de fotografías, realizamos **la tarea manual** de definir 4 categorías y asignar las etiquetas que, **a criterio nuestro**, pertenecen a ellas.
 
 1. **Etiquetas del ámbito militar:** 'destroyer','boat','soldier','frigate', etc.
 2. **Etiquetas que describen armamento antipersonal:** 'weapon', 'firearm', 'swat team', etc.
 3. **Etiauetas del ámbito social y de asistencia:** 'food','first aid','rural', etc.
-4. **Etiquetas generales:** 'sunglasses','bird','building', etc.
 
-**IMPORTANTE:** Una imagen puede tener `N` etiquetas, por lo que una misma img puede estar repetida en más de 1 grupo.
+**IMPORTANTE:** Una imagen puede tener `N` etiquetas, por lo que una misma img puede estar repetida en más de 1 categoría de las definidas arriba.
 
 
 ### Diccionario de etiquetas del ámbito militar:
@@ -82,8 +85,7 @@ social_dict$etiqueta
 ```
 
 ### Diccionario de etiquetas generales
-
-Estas etiquetas resultan bastante generales como para ayudarnos a definir ya sea una categoría, o 
+Estas etiquetas resultan bastante generales y por tanto forman un grupo de uso limitado, pero las ponemos aquí por transparencia.
 ```{r general-dict, echo=F, warning=F, message=F}
 general_labels <- rekognition_result %>% filter(!(Name %in% military_dict) & !(Name %in% social_dict$etiqueta))
 unique(general_labels$Name)
@@ -151,6 +153,12 @@ rekognition_leftout_sum <- general_labels %>%
   arrange(desc(ponderado))
 rekognition_leftout_sum %>% paged_table()
 ```
+
+### Etiqueta más representada
+Como podemos observar, tenemos una etiqueta `Human` que está en al menos 1000 fotografías. Dicha etiqueta no aporta nada de información de nuestro interés al análisis, y el que esté en 1000 fotografías implica que tenemos demasiado ruido en bastantes elementos de la muestra.
+
+### Etiqueta menos representada
+Considerando que el filtro de confianza > `r threshold` %, la etiqueta con menos representación aún debe ser mayor a este umbral. La etiqueta que cumple este criterio es `Grand Theft Auto` (robo de automóvil en inglés), que aparece en 1 sola fotografía. Dada la distancia del significado de la etiqueta VS el dominio del área de estudio, y la cantidad de elementos de la muestra en la que aparece, podemos despreciar el aporte de esta observación individual a este estudio.
 
 ## Qué etiquetas están relacionadas con una percepción positiva de la SEMAR ante la sociedad y con qué frecuencia aparecen?
 
