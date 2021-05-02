@@ -135,7 +135,7 @@ rekognition_filtered_w_social_dict %>% paged_table()
 
 # Análisis
 
-## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= `{r threshold}` %, el filtro de diccionario de etiquetas militares, y el filtro de etiquetas de contacto con la sociedad?
+## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= `r threshold` %, el filtro de diccionario de etiquetas militares, y el filtro de etiquetas de contacto con la sociedad?
 ```{r imgs-left-out, echo=F, warning=F, message=F}
 left_out <- length(unique(general_labels$Source)) / length(unique(rekognition_result$Source)) * 100
 paste0(round(left_out,2),' %')
