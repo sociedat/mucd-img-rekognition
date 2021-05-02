@@ -69,7 +69,7 @@ military_dict
 ```
 
 ### Diccionario de etiquetas específicas de armamento antipersonal:
-```{r military-dict, echo=F, warning=F, message=F}
+```{r weaponry-dict, echo=F, warning=F, message=F}
 weaponry_dict <- read_lines('weaponry_labels.txt')
 weaponry_dict
 ```
@@ -101,7 +101,6 @@ Para cada grupo de etiquetas vamos a seguir estos pasos:
 ```{r filtered-with-military-dict, echo=F, warning=F, message=F}
 rekognition_filtered_w_dict <- rekognition_result %>% 
   filter(Name %in% military_dict) %>%
-  filter(Confidence >= param) %>%
   inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
   select(-c('User Name','Type','URL','Link','Message'))
 rekognition_filtered_w_dict %>% paged_table()
@@ -110,7 +109,6 @@ rekognition_filtered_w_dict %>% paged_table()
 ```{r filtered-with-weaponry-dict, echo=F, warning=F, message=F}
 rekognition_filtered_w_weaponry_dict <- rekognition_result %>% 
   filter(Name %in% weaponry_dict) %>%
-  filter(Confidence >= param) %>%
   inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
   select(-c('User Name','Type','URL','Link','Message'))
 rekognition_filtered_w_weaponry_dict %>% paged_table()
@@ -130,7 +128,6 @@ Lo cual definitivamente no es un traje de "gotcha" o "paintball", sino equipamie
 ```{r filtered-with-social-dict, echo=F, warning=F, message=F}
 rekognition_filtered_w_social_dict <- rekognition_result %>% 
   filter(Name %in% social_dict$etiqueta) %>%
-  filter(Confidence >= param) %>%
   inner_join(fb_export_semar, by = c('Source' = 'id')) %>%
   select(-c('User Name','Type','URL','Link','Message'))
 rekognition_filtered_w_social_dict %>% paged_table()
@@ -138,7 +135,7 @@ rekognition_filtered_w_social_dict %>% paged_table()
 
 # Análisis
 
-## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= `{r param}` %, el filtro de diccionario de etiquetas militares, y el filtro de etiquetas de contacto con la sociedad?
+## Cuántas imagenes quedaron fuera una vez aplicados los filtros de confianza >= `{r threshold}` %, el filtro de diccionario de etiquetas militares, y el filtro de etiquetas de contacto con la sociedad?
 ```{r imgs-left-out, echo=F, warning=F, message=F}
 left_out <- length(unique(general_labels$Source)) / length(unique(rekognition_result$Source)) * 100
 paste0(round(left_out,2),' %')
@@ -178,7 +175,6 @@ Una vez obtenidas estas categorías, podemos asociar cada una con las imgs desca
 photos_categories_social <- rekognition_result %>% 
   rename(etiqueta = Name, confianza_etiqueta = Confidence, num_foto = Source) %>%
   inner_join(social_dict) %>%
-  filter(confianza_etiqueta >= param) %>%
   inner_join(fb_export_semar, by = c('num_foto' = 'id')) %>%
   select(-c('User Name','Type','URL','Link'))
 summary_photos_social <- photos_categories_social %>% 
