@@ -1,0 +1,56 @@
+etiqueta,categoria
+Advertisement,Proyección positiva
+Poster,Proyección positiva
+Crowd,Acercamiento con civiles
+Symbol,Proyección patriótica
+Brochure,Proyección positiva
+Flyer,Proyección positiva
+Leisure Activities,Acercamiento con civiles
+Medical Imaging X-Ray Film, Asistencia en salud
+Sport, Acercamiento con civiles
+Sports, Acercamiento con civiles
+Flag,Proyección patriótica
+X-Ray,Asistencia en salud
+Pet,Proyección positiva
+Canine,Proyección positiva
+Clinic,Asistencia en salud
+Surgery,Asistencia en salud
+Dog,Proyección positiva
+Injury,Asistencia en salud
+Nurse,Asistencia en salud
+Senior Citizen,Proyección positiva
+City,Acercamiento con civiles
+Town,Acercamiento con civiles
+Tree,Proyección positiva
+Team,Proyección positiva
+Metropolis,Acercamiento con civiles
+Hospital,Asistencia en salud
+Vegetation,Acercamiento con civiles
+Fireman,Acercamiento con civiles
+Police,Proyección positiva
+Soccer,Proyección positiva
+Red Cross,Asistencia en salud
+Parade,Proyección patriótica
+Eruption,Asistencia en desastres
+Ambulance,Asistencia en salud
+Doctor,Asistencia en salud
+Food,Asistencia en desastres
+Female,Inclusión y género
+Flooring,Acercamiento con civiles
+Musical Instrument,Proyección positiva
+German Shepherd,Proyección positiva
+Team Sport,Acercamiento con civiles
+CT Scan,Asistencia en salud
+Lab,Proyección positiva
+Alphabet,Acercamiento con civiles
+Lab Coat,Asistencia en salud
+Drawing,Acercamiento con civiles
+Toy,Acercamiento con civiles
+Costume,Acercamiento con civiles
+First Aid,Asistencia en salud
+Meal,Asistencia en desastres
+Girl,Inclusión y género
+Woman, Inclusión y género
+Baseball Cap,Acercamiento con civiles
+Festival,Acercamiento con civiles
+Rural,Asistencia en desastres
